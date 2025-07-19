@@ -15,10 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Chattery',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       home: const ChatPage(),
     );
   }
@@ -72,11 +69,13 @@ class _ChatPageState extends State<ChatPage> {
 
     _scrollToBottom();
 
+    // Add an empty assistant message as a placeholder
+    _messages.add({"role": "assistant", "content": ""});
+
     try {
-      final response = await _sendToLLM(prompt);
+      await _sendToLLMStream(prompt); // Using the new streaming function
 
       setState(() {
-        _messages.add({"role": "assistant", "content": response});
         _loading = false;
       });
 
@@ -84,18 +83,27 @@ class _ChatPageState extends State<ChatPage> {
 
       // Update summary after every message
       _updateSummary();
-
-      // await _flutterTts.speak(response);
-
     } catch (e) {
       setState(() {
-        _error = "Gagal mengirim pesan: ${e.toString()}";
+        _error = "Failed to send message: ${e.toString()}";
         _loading = false;
+        // Remove assistant message placeholder if there's an error
+        if (_messages.isNotEmpty &&
+            _messages.last["role"] == "assistant" &&
+            _messages.last["content"] == "") {
+          _messages.removeLast();
+        }
       });
     }
   }
 
-  Future<String> _sendToLLM(String prompt) async {
+  // --- Old _sendToLLM function (no longer used for streaming responses) ---
+  // Future<String> _sendToLLM(String prompt) async {
+  //   // ... (old code) ...
+  // }
+
+  // --- New function for streaming responses ---
+  Future<void> _sendToLLMStream(String prompt) async {
     String finalPrompt;
 
     if (_summary != null && _summary!.isNotEmpty) {
@@ -104,12 +112,15 @@ class _ChatPageState extends State<ChatPage> {
           ? _messages.sublist(_messages.length - 6)
           : _messages;
 
-      final recentContext = recentMessages.map((msg) {
-        final role = msg['role'] == 'user' ? "User" : "Assistant";
-        return "$role: ${msg['content']}";
-      }).join("\n");
+      final recentContext = recentMessages
+          .map((msg) {
+            final role = msg['role'] == 'user' ? "User" : "Assistant";
+            return "$role: ${msg['content']}";
+          })
+          .join("\n");
 
-      finalPrompt = """Context from previous conversation:
+      finalPrompt =
+          """Context from previous conversation:
 $_summary
 
 Recent conversation:
@@ -119,34 +130,61 @@ Please respond naturally to the user's latest message. Keep your response clear 
 Assistant:""";
     } else {
       // Use full history if no summary yet
-      finalPrompt = _messages.map((msg) {
-        final role = msg['role'] == 'user' ? "User" : "Assistant";
-        return "$role: ${msg['content']}";
-      }).join("\n");
+      finalPrompt = _messages
+          .map((msg) {
+            final role = msg['role'] == 'user' ? "User" : "Assistant";
+            return "$role: ${msg['content']}";
+          })
+          .join("\n");
       finalPrompt += "\nAssistant:";
     }
 
-    final response = await http.post(
-      Uri.parse('http://localhost:11434/api/generate'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "model": "llama2",
-        "prompt": finalPrompt,
-        "stream": false,
-        "options": {
-          "temperature": 0.7,
-          "top_p": 0.9,
-          "max_tokens": 500,
-        }
-      }),
-    );
+    // Change "stream": false to "stream": true
+    final request =
+        http.Request('POST', Uri.parse('http://localhost:11434/api/generate'))
+          ..headers['Content-Type'] = 'application/json'
+          ..body = jsonEncode({
+            "model": "llama2",
+            "prompt": finalPrompt,
+            "stream": true, // **IMPORTANT: SET STREAM TO TRUE**
+            "options": {"temperature": 0.7, "top_p": 0.9, "max_tokens": 500},
+          });
 
-    if (response.statusCode != 200) {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+    final streamedResponse = await request.send();
+
+    if (streamedResponse.statusCode != 200) {
+      throw Exception(
+        'HTTP ${streamedResponse.statusCode}: ${streamedResponse.reasonPhrase}',
+      );
     }
 
-    final data = jsonDecode(response.body);
-    return data['response']?.toString().trim() ?? 'Tidak ada respon dari model';
+    String fullResponse = "";
+    await for (var chunk
+        in streamedResponse.stream
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())) {
+      try {
+        final data = jsonDecode(chunk);
+        if (data.containsKey('response')) {
+          final String currentText = data['response'];
+          fullResponse += currentText;
+
+          setState(() {
+            // Update the content of the last assistant message
+            if (_messages.isNotEmpty && _messages.last["role"] == "assistant") {
+              _messages.last["content"] = fullResponse;
+            }
+          });
+          _scrollToBottom(); // Scroll to bottom every time there's an update
+        }
+      } catch (e) {
+        debugPrint("Error parsing chunk: $e, chunk: $chunk");
+        // Continue, there might be empty or invalid chunks
+      }
+    }
+
+    // After the stream is complete, you can perform TTS if desired
+    // await _flutterTts.speak(fullResponse);
   }
 
   Future<void> _updateSummary() async {
@@ -157,26 +195,26 @@ Assistant:""";
     });
 
     try {
-      final history = _messages.map((msg) {
-        final role = msg['role'] == 'user' ? "User" : "Assistant";
-        return "$role: ${msg['content']}";
-      }).join("\n");
+      final history = _messages
+          .map((msg) {
+            final role = msg['role'] == 'user' ? "User" : "Assistant";
+            return "$role: ${msg['content']}";
+          })
+          .join("\n");
 
+      // For summary, we might not need streaming, so keep stream: false
       final response = await http.post(
         Uri.parse('http://localhost:11434/api/generate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "model": "llama2",
-          "prompt": """Please create a concise summary of this conversation that captures the key topics, questions asked, and important information discussed. Keep it brief but informative:
+          "prompt":
+              """Please create a concise summary of this conversation that captures the key topics, questions asked, and important information discussed. Keep it brief but informative:
 
 $history
-
 Summary:""",
-          "stream": false,
-          "options": {
-            "temperature": 0.3,
-            "max_tokens": 200,
-          }
+          "stream": false, // Summary does not need streaming
+          "options": {"temperature": 0.3, "max_tokens": 200},
         }),
       );
 
@@ -185,7 +223,7 @@ Summary:""",
         final summary = data['response']?.toString().trim() ?? '';
 
         setState(() {
-          _summary = summary.isEmpty ? "Ringkasan sedang diproses..." : summary;
+          _summary = summary.isEmpty ? "Summary being processed..." : summary;
           _summaryLoading = false;
         });
       }
@@ -238,13 +276,13 @@ Summary:""",
       appBar: AppBar(
         title: const Text("Chattery"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.delete),
-        //     onPressed: _clearChat,
-        //     tooltip: "Bersihkan Chat",
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _clearChat,
+            tooltip: "Clear Chat",
+          ),
+        ],
       ),
       body: Row(
         children: [
@@ -270,77 +308,74 @@ Summary:""",
                 Expanded(
                   child: _messages.isEmpty
                       ? const Center(
-                    child: Text(
-                      "Mulai percakapan dengan mengetik pesan...",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  )
+                          child: Text(
+                            "Start a conversation by typing a message...",
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
                       : ListView.builder(
-                    controller: _chatScrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = _messages[index];
-                      final isUser = msg['role'] == 'user';
+                          controller: _chatScrollController,
+                          padding: const EdgeInsets.all(8),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final msg = _messages[index];
+                            final isUser = msg['role'] == 'user';
 
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: isUser
-                              ? MainAxisAlignment.end
-                              : MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isUser) ...[
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.green.shade100,
-                                child: const Icon(
-                                  Icons.smart_toy,
-                                  size: 16,
-                                  color: Colors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
+                            return Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: isUser
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!isUser) ...[
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: Colors.green.shade100,
+                                      child: const Icon(
+                                        Icons.smart_toy,
+                                        size: 16,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
 
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isUser
-                                      ? Colors.blue.shade500
-                                      : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: isUser ? null : Border.all(
-                                    color: Colors.grey.shade300,
-                                    width: 1,
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: isUser
+                                            ? Colors.blue.shade500
+                                            : Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: isUser
+                                            ? null
+                                            : Border.all(
+                                                color: Colors.grey.shade300,
+                                                width: 1,
+                                              ),
+                                      ),
+                                      child: Text(
+                                        msg['content'] ?? '',
+                                        style: TextStyle(
+                                          color: isUser
+                                              ? Colors.white
+                                              : Colors.black87,
+                                          fontSize: 14,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  msg['content'] ?? '',
-                                  style: TextStyle(
-                                    color: isUser
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: 14,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ),
 
-                            if (isUser) ...[
-                              const SizedBox(width: 8),
-                            ],
-                          ],
+                                  if (isUser) ...[const SizedBox(width: 8)],
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
 
                 // Loading indicator
@@ -365,7 +400,7 @@ Summary:""",
                         child: TextField(
                           controller: _controller,
                           decoration: InputDecoration(
-                            hintText: "Ketik pesan Anda...",
+                            hintText: "Type your message...",
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
                               borderSide: BorderSide.none,
@@ -392,7 +427,7 @@ Summary:""",
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.blue.shade50,
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -405,9 +440,7 @@ Summary:""",
             width: 350,
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
-              border: Border(
-                left: BorderSide(color: Colors.grey.shade300),
-              ),
+              border: Border(left: BorderSide(color: Colors.grey.shade300)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +458,7 @@ Summary:""",
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "📋 Ringkasan Percakapan",
+                        "📋 Conversation Summary",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -438,8 +471,10 @@ Summary:""",
                             size: 20,
                             color: Colors.grey.shade600,
                           ),
-                          onPressed: _summaryLoading ? null : _regenerateSummary,
-                          tooltip: "Perbarui ringkasan",
+                          onPressed: _summaryLoading
+                              ? null
+                              : _regenerateSummary,
+                          tooltip: "Update summary",
                         ),
                     ],
                   ),
@@ -451,65 +486,32 @@ Summary:""",
                     padding: const EdgeInsets.all(16),
                     child: _summaryLoading
                         ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text("Membuat ringkasan..."),
-                        ],
-                      ),
-                    )
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text("Generating summary..."),
+                              ],
+                            ),
+                          )
                         : SingleChildScrollView(
-                      controller: _summaryScrollController,
-                      child: Text(
-                        _summary ?? (_messages.isEmpty
-                            ? "Mulai percakapan untuk melihat ringkasan..."
-                            : "Belum ada ringkasan."),
-                        style: TextStyle(
-                          color: _summary != null
-                              ? Colors.black87
-                              : Colors.grey.shade600,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
+                            controller: _summaryScrollController,
+                            child: Text(
+                              _summary ??
+                                  (_messages.isEmpty
+                                      ? "Start a conversation to see the summary..."
+                                      : "No summary yet."),
+                              style: TextStyle(
+                                color: _summary != null
+                                    ? Colors.black87
+                                    : Colors.grey.shade600,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
-
-                // Summary info
-                // if (_messages.isNotEmpty)
-                //   Container(
-                //     padding: const EdgeInsets.all(16),
-                //     decoration: BoxDecoration(
-                //       color: Colors.white,
-                //       border: Border(
-                //         top: BorderSide(color: Colors.grey.shade300),
-                //       ),
-                //     ),
-                //     child: Column(
-                //       crossAxisAlignment: CrossAxisAlignment.start,
-                //       children: [
-                //         Text(
-                //           "📊 Statistik:",
-                //           style: TextStyle(
-                //             fontWeight: FontWeight.bold,
-                //             color: Colors.grey.shade700,
-                //           ),
-                //         ),
-                //         const SizedBox(height: 8),
-                //         Text(
-                //           "• ${_messages.length} pesan total\n"
-                //               "• ${_messages.where((m) => m['role'] == 'user').length} dari pengguna\n"
-                //               "• ${_messages.where((m) => m['role'] == 'assistant').length} dari assistant",
-                //           style: TextStyle(
-                //             fontSize: 12,
-                //             color: Colors.grey.shade600,
-                //           ),
-                //         ),
-                //       ],
-                //     ),
-                //   ),
               ],
             ),
           ),
