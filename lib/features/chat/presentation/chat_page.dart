@@ -174,9 +174,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   const SizedBox(height: 8),
                   Builder(
                     builder: (_) {
-                      if (summaryState.isLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                      // if (summaryState.isLoading) {
+                      //   return const Center(child: CircularProgressIndicator());
+                      // }
                       if (summaryState.summary == null) {
                         return Text(
                           "No summary yet.",
@@ -214,9 +214,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                   Builder(
                     builder: (_) {
-                      if (hintsState.isLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                      // if (hintsState.isLoading) {
+                      //   return const Center(child: CircularProgressIndicator());
+                      // }
                       if (hintsState.hints == null ||
                           hintsState.hints!.isEmpty) {
                         return Text(
