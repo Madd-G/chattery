@@ -153,30 +153,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       Expanded(
                         child: Text(
                           "📋 Conversation Summary",
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.refresh, size: 20),
-                        onPressed: hintsState.isLoading
-                            ? null
-                            : () => summaryNotifier.updateSummary(
-                                chatState.messages,
-                              ),
-                        tooltip: "Update summary",
-                      ),
+                      if (summaryState.isLoading)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.refresh, size: 20),
+                          tooltip: "Update Summary",
+                          onPressed: summaryState.isLoading
+                              ? null
+                              : () => summaryNotifier.updateSummary(
+                                  chatState.messages,
+                                ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Builder(
                     builder: (_) {
-                      // if (summaryState.isLoading) {
-                      //   return const Center(child: CircularProgressIndicator());
-                      // }
                       if (summaryState.summary == null) {
                         return Text(
                           "No summary yet.",
@@ -202,14 +206,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           maxLines: 2,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.refresh, size: 20),
-                        onPressed: hintsState.isLoading
-                            ? null
-                            : () =>
-                                  hintsNotifier.updateHints(chatState.messages),
-                        tooltip: "Update hints",
-                      ),
+                      if (hintsState.isLoading)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.refresh, size: 20),
+                          tooltip: "Update Hints & Topics",
+                          onPressed: hintsState.isLoading
+                              ? null
+                              : () => hintsNotifier.updateHints(
+                                  chatState.messages,
+                                ),
+                        ),
                     ],
                   ),
                   Builder(
