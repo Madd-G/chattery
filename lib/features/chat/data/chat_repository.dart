@@ -30,49 +30,59 @@ class ChatRepositoryImpl implements ChatRepository {
           ? conversationHistory.sublist(conversationHistory.length - 6)
           : conversationHistory;
 
-      final recentContext = recentMessages.map((msg) {
-        final role = msg.role == 'user' ? "User" : "Assistant";
-        return "$role: ${msg.content}";
-      }).join("\n");
+      final recentContext = recentMessages
+          .map((msg) {
+            final role = msg.role == 'user' ? "User" : "Assistant";
+            return "$role: ${msg.content}";
+          })
+          .join("\n");
 
-      finalPrompt = """
+      finalPrompt =
+          """
 Context from previous conversation:
 $summaryContext
 
 Recent conversation:
 $recentContext
 
-Please respond naturally to the user's latest message. Keep your response clear and helpful.
+Please respond naturally to the user's latest message. Keep your response clear, concise, and directly to the point. Do NOT include unnecessary greetings, explanations, or apologies. Start your answer directly.
+
 Assistant:""";
     } else {
-      finalPrompt = conversationHistory.map((msg) {
-        final role = msg.role == 'user' ? "User" : "Assistant";
-        return "$role: ${msg.content}";
-      }).join("\n") + "\nAssistant:";
+      finalPrompt =
+          "${conversationHistory.map((msg) {
+            final role = msg.role == 'user' ? "User" : "Assistant";
+            return "$role: ${msg.content}";
+          }).join("\n")}\nAssistant:";
     }
 
-    final request = http.Request(
-      'POST',
-      Uri.parse('${ApiConstants.ollamaBaseUrl}${ApiConstants.ollamaGenerateEndpoint}'),
-    )
-      ..headers['Content-Type'] = 'application/json'
-      ..body = jsonEncode({
-        "model": ApiConstants.defaultLlmModel,
-        "prompt": finalPrompt,
-        "stream": true,
-        "options": {"temperature": 0.7, "top_p": 0.9, "max_tokens": 500},
-      });
+    final request =
+        http.Request(
+            'POST',
+            Uri.parse(
+              '${ApiConstants.ollamaBaseUrl}${ApiConstants.ollamaGenerateEndpoint}',
+            ),
+          )
+          ..headers['Content-Type'] = 'application/json'
+          ..body = jsonEncode({
+            "model": ApiConstants.defaultLlmModel,
+            "prompt": finalPrompt,
+            "stream": true,
+            "options": {"temperature": 0.2, "top_p": 0.3, "max_tokens": 500},
+          });
 
     final streamedResponse = await _client.send(request);
 
     if (streamedResponse.statusCode != 200) {
       throw Exception(
-          'HTTP ${streamedResponse.statusCode}: ${streamedResponse.reasonPhrase}');
+        'HTTP ${streamedResponse.statusCode}: ${streamedResponse.reasonPhrase}',
+      );
     }
 
-    await for (var chunk in streamedResponse.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
+    await for (var chunk
+        in streamedResponse.stream
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())) {
       try {
         final data = jsonDecode(chunk);
         if (data.containsKey('response')) {
