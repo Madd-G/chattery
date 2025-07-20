@@ -70,7 +70,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: chatNotifier.clearChat, // Calls the clearChat method on the notifier
+            onPressed: chatNotifier.clearChat,
+            // Calls the clearChat method on the notifier
             tooltip: "Clear Chat",
           ),
         ],
@@ -79,7 +80,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         children: [
           /// Left Panel: Chat Section
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Column(
               children: [
                 if (chatState.error != null)
@@ -97,21 +98,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 Expanded(
                   child: chatState.messages.isEmpty
                       ? const Center(
-                    child: Text(
-                      "Start a conversation by typing a message...",
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  )
+                          child: Text(
+                            "Start a conversation by typing a message...",
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
                       : ListView.builder(
-                    controller: _chatScrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: chatState.messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = chatState.messages[index];
-                      final isUser = msg.role == 'user';
-                      return ChatBubble(message: msg, isUser: isUser);
-                    },
-                  ),
+                          controller: _chatScrollController,
+                          padding: const EdgeInsets.all(8),
+                          itemCount: chatState.messages.length,
+                          itemBuilder: (context, index) {
+                            final msg = chatState.messages[index];
+                            final isUser = msg.role == 'user';
+                            return ChatBubble(message: msg, isUser: isUser);
+                          },
+                        ),
                 ),
 
                 if (chatState.isLoading)
@@ -133,82 +135,88 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ),
 
           /// Right Panel: Summary Section
-          Container(
-            width: 350,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              border: Border(left: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "📋 Conversation Summary",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (chatState.messages.isNotEmpty)
-                        IconButton(
-                          icon: Icon(
-                            Icons.refresh,
-                            size: 20,
-                            color: Colors.grey.shade600,
-                          ),
-                          onPressed: summaryState.isLoading
-                              ? null
-                              : () => summaryNotifier.updateSummary(chatState.messages),
-                          tooltip: "Update summary",
-                        ),
-                    ],
-                  ),
-                ),
-
-                // Summary content display
-                Expanded(
-                  child: Padding(
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                border: Border(left: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
                     padding: const EdgeInsets.all(16),
-                    child: summaryState.isLoading
-                        ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text("Generating summary..."),
-                        ],
-                      ),
-                    )
-                        : SingleChildScrollView(
-                      controller: _summaryScrollController,
-                      child: Text(
-                        summaryState.summary ??
-                            (chatState.messages.isEmpty
-                                ? "Start a conversation to see the summary..."
-                                : "No summary yet."),
-                        style: TextStyle(
-                          color: summaryState.summary != null
-                              ? Colors.black87
-                              : Colors.grey.shade600,
-                          height: 1.5,
-                        ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "📋 Conversation Summary",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                          ),
+                        ),
+                        if (chatState.messages.isNotEmpty)
+                          IconButton(
+                            icon: Icon(
+                              Icons.refresh,
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            ),
+                            onPressed: summaryState.isLoading
+                                ? null
+                                : () => summaryNotifier.updateSummary(
+                                    chatState.messages,
+                                  ),
+                            tooltip: "Update summary",
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  // Summary content display
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: summaryState.isLoading
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text("Generating summary..."),
+                                ],
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              controller: _summaryScrollController,
+                              child: Text(
+                                summaryState.summary ??
+                                    (chatState.messages.isEmpty
+                                        ? "Start a conversation to see the summary..."
+                                        : "No summary yet."),
+                                style: TextStyle(
+                                  color: summaryState.summary != null
+                                      ? Colors.black87
+                                      : Colors.grey.shade600,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
