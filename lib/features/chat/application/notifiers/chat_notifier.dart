@@ -1,3 +1,4 @@
+import 'package:chattery/features/chat/application/providers/hints_providers.dart';
 import 'package:chattery/features/chat/application/providers/summary_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chattery/core/models/message.dart';
@@ -72,6 +73,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       // await _ttsService.speak(fullResponse);
 
       _ref.read(summaryNotifierProvider.notifier).updateSummary(state.messages);
+      _ref.read(hintsNotifierProvider.notifier).updateHints(state.messages);
     } catch (e) {
       state = state.copyWith(
         error: "Failed to send message: ${e.toString()}",
@@ -89,8 +91,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   void clearChat() {
     state = ChatState(messages: []);
-    _ref
-        .read(summaryNotifierProvider.notifier)
-        .clearSummary();
+    _ref.read(summaryNotifierProvider.notifier).clearSummary();
   }
 }

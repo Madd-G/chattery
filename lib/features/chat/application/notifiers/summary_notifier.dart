@@ -1,3 +1,4 @@
+import 'package:chattery/features/chat/data/summary_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chattery/core/models/message.dart';
@@ -18,9 +19,9 @@ class SummaryState {
 }
 
 class SummaryNotifier extends StateNotifier<SummaryState> {
-  final ChatRepository _chatRepository;
+  final SummaryRepository _summaryRepository;
 
-  SummaryNotifier(this._chatRepository) : super(SummaryState());
+  SummaryNotifier(this._summaryRepository) : super(SummaryState());
 
   Future<void> updateSummary(List<Message> messages) async {
     if (messages.isEmpty) {
@@ -32,7 +33,7 @@ class SummaryNotifier extends StateNotifier<SummaryState> {
 
     try {
       final String generatedSummary =
-      await _chatRepository.generateSummary(conversationHistory: messages);
+      await _summaryRepository.generateSummary(messages);
 
       state = state.copyWith(
         summary: generatedSummary.isEmpty ? "Summary being processed..." : generatedSummary,

@@ -1,5 +1,6 @@
 import 'package:chattery/features/chat/application/notifiers/chat_notifier.dart';
 import 'package:chattery/features/chat/application/providers/chat_providers.dart';
+import 'package:chattery/features/chat/application/providers/hints_providers.dart';
 import 'package:chattery/features/chat/application/providers/summary_providers.dart';
 import 'package:chattery/features/chat/presentation/widgets/chat_bubble.dart';
 import 'package:chattery/features/chat/presentation/widgets/message_input.dart';
@@ -50,9 +51,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatNotifierProvider);
     final summaryState = ref.watch(summaryNotifierProvider);
+    final hintsState = ref.watch(hintsNotifierProvider);
 
     final chatNotifier = ref.read(chatNotifierProvider.notifier);
     final summaryNotifier = ref.read(summaryNotifierProvider.notifier);
+    final hintsNotifier = ref.read(hintsNotifierProvider.notifier);
 
     ref.listen<ChatState>(chatNotifierProvider, (prev, next) {
       if (prev!.messages.length != next.messages.length ||
@@ -77,6 +80,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ],
       ),
       body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           /// Left Panel: Chat Section
           Expanded(
@@ -136,84 +140,104 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
           /// Right Panel: Summary Section
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                border: Border(left: BorderSide(color: Colors.grey.shade300)),
-              ),
+            child: SingleChildScrollView(
+              controller: _summaryScrollController,
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey.shade300),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            "📋 Conversation Summary",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
+                  /// Summary Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "📋 Conversation Summary",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
                         ),
-                        if (chatState.messages.isNotEmpty)
-                          IconButton(
-                            icon: Icon(
-                              Icons.refresh,
-                              size: 20,
-                              color: Colors.grey.shade600,
-                            ),
-                            onPressed: summaryState.isLoading
-                                ? null
-                                : () => summaryNotifier.updateSummary(
-                                    chatState.messages,
-                                  ),
-                            tooltip: "Update summary",
-                          ),
-                      ],
-                    ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.refresh, size: 20),
+                        onPressed: hintsState.isLoading
+                            ? null
+                            : () => summaryNotifier.updateSummary(
+                                chatState.messages,
+                              ),
+                        tooltip: "Update summary",
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (_) {
+                      if (summaryState.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (summaryState.summary == null) {
+                        return Text(
+                          "No summary yet.",
+                          style: TextStyle(color: Colors.grey),
+                        );
+                      }
+                      return Text(summaryState.summary!);
+                    },
+                  ),
+                  const SizedBox(height: 24),
 
-                  // Summary content display
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: summaryState.isLoading
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 16),
-                                  Text("Generating summary..."),
-                                ],
+                  /// Hints Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "💡 Hints & Topics",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.refresh, size: 20),
+                        onPressed: hintsState.isLoading
+                            ? null
+                            : () =>
+                                  hintsNotifier.updateHints(chatState.messages),
+                        tooltip: "Update hints",
+                      ),
+                    ],
+                  ),
+                  Builder(
+                    builder: (_) {
+                      if (hintsState.isLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (hintsState.hints == null ||
+                          hintsState.hints!.isEmpty) {
+                        return Text(
+                          "No hints available.",
+                          style: TextStyle(color: Colors.grey),
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: hintsState.hints!
+                            .map(
+                              (hint) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4.0,
+                                ),
+                                child: Text("• $hint"),
                               ),
                             )
-                          : SingleChildScrollView(
-                              controller: _summaryScrollController,
-                              child: Text(
-                                summaryState.summary ??
-                                    (chatState.messages.isEmpty
-                                        ? "Start a conversation to see the summary..."
-                                        : "No summary yet."),
-                                style: TextStyle(
-                                  color: summaryState.summary != null
-                                      ? Colors.black87
-                                      : Colors.grey.shade600,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ),
-                    ),
+                            .toList(),
+                      );
+                    },
                   ),
                 ],
               ),
