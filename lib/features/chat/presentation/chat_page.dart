@@ -137,6 +137,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ],
             ),
           ),
+          VerticalDivider(color: Colors.grey),
 
           /// Right Panel: Summary Section
           Expanded(
