@@ -31,15 +31,23 @@ class HintsRepositoryImpl implements HintsRepository {
       body: jsonEncode({
         "model": ApiConstants.defaultLlmModel,
         "prompt":
-            """
-Based on the following conversation, suggest 3–5 short, natural follow-up questions or topics the user could ask next.
+        """
+Based on the following conversation, suggest 3-5 short, natural follow-up topics or questions that make sense for the user to say next.
 
-Important: Return only the numbered list of suggestions. Do NOT include any introduction, explanation, or closing remarks. Start directly with "1." and continue the list.
+Guidelines:
+- Prioritize the most recent exchange - focus heavily on what the AI just explained or asked
+- Write suggestions from the USER's perspective (what the user would say)
+- If AI just explained a concept, suggest: asking for more examples, clarification, related concepts, or practice
+- If AI asked a question, provide direct ways to answer it
+- Stay closely connected to the immediate topic being discussed
+- Avoid jumping to unrelated grammar topics or concepts not yet mentioned
+
+Return ONLY a numbered list with no introduction, explanation, greeting, or closing remarks. Start directly with "1." and continue the list.
 
 Conversation:
 $history
 
-Hints:
+Suggested topics:
 """,
         "stream": false,
         "options": {"temperature": 0.7, "max_tokens": 150},
@@ -56,6 +64,7 @@ Hints:
           .where((line) => line.isNotEmpty)
           .toList();
 
+      print('hints: $hints');
       return hints;
     } else {
       throw Exception('Failed to generate hints: ${response.statusCode}');
