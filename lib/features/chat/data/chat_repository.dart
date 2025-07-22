@@ -47,6 +47,20 @@ $recentContext
 
 Please respond naturally to the user's latest message. Keep your response clear, concise, and directly to the point. Do NOT include unnecessary greetings, explanations, or apologies. Start your answer directly.
 
+IMPORTANT: Always format your response using proper Markdown syntax:
+- Use **bold** for emphasis
+- Use *italics* for secondary emphasis  
+- Use `code blocks` for code snippets
+- Use ```language for multi-line code blocks
+- Use # ## ### for headers when organizing content
+- Use - or * for bullet points
+- Use 1. 2. 3. for numbered lists
+- Use > for quotes
+- Use [text](url) for links
+- Use tables with | when presenting data
+
+Your response must be in valid Markdown format.
+
 Assistant:""";
     } else {
       finalPrompt =
