@@ -28,66 +28,17 @@ class ChatBubble extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: isUser
-                ? Text(
+                ? SelectableText(
                     message.content,
                     style: const TextStyle(color: Colors.white),
                   )
-                : Builder(
-                    builder: (context) => MarkdownBody(
-                      data: message.content,
-                      builders: {'code': CodeElementBuilder(context)},
-                    ),
+                : SelectableText(
+                    message.content,
+                    style: const TextStyle(color: Colors.black),
                   ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class CodeElementBuilder extends MarkdownElementBuilder {
-  final BuildContext context;
-
-  CodeElementBuilder(this.context);
-
-  @override
-  Widget visitElementAfter(element, preferredStyle) {
-    final text = element.textContent;
-
-    return Container(
-      padding: const EdgeInsets.all(8),
-      color: Colors.grey.shade200,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.copy, size: 16),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: text));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Copied!'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-              debugPrint("Copied: $text");
-            },
-          ),
-        ],
-      ),
     );
   }
 }
