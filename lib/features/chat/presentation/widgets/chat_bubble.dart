@@ -13,8 +13,9 @@ class ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment:
-      isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isUser
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       children: [
         Flexible(
           child: Container(
@@ -28,17 +29,15 @@ class ChatBubble extends StatelessWidget {
             ),
             child: isUser
                 ? Text(
-              message.content,
-              style: const TextStyle(color: Colors.white),
-            )
+                    message.content,
+                    style: const TextStyle(color: Colors.white),
+                  )
                 : Builder(
-              builder: (context) => MarkdownBody(
-                data: message.content,
-                builders: {
-                  'code': CodeElementBuilder(context),
-                },
-              ),
-            ),
+                    builder: (context) => MarkdownBody(
+                      data: message.content,
+                      builders: {'code': CodeElementBuilder(context)},
+                    ),
+                  ),
           ),
         ),
       ],
@@ -52,7 +51,7 @@ class CodeElementBuilder extends MarkdownElementBuilder {
   CodeElementBuilder(this.context);
 
   @override
-  Widget visitElementAfter(element, children) {
+  Widget visitElementAfter(element, preferredStyle) {
     final text = element.textContent;
 
     return Container(

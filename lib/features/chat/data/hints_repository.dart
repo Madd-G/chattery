@@ -64,7 +64,6 @@ Suggested topics:
           .where((line) => line.isNotEmpty)
           .toList();
 
-      print('hints: $hints');
       return hints;
     } else {
       throw Exception('Failed to generate hints: ${response.statusCode}');

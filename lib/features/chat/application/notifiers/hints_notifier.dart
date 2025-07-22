@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import
+
 import 'package:chattery/core/models/message.dart';
 import 'package:chattery/features/chat/data/chat_repository.dart';
 import 'package:chattery/features/chat/data/hints_repository.dart';

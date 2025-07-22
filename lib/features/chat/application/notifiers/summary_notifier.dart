@@ -2,7 +2,6 @@ import 'package:chattery/features/chat/data/summary_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chattery/core/models/message.dart';
-import 'package:chattery/features/chat/data/chat_repository.dart';
 
 class SummaryState {
   final String? summary;
