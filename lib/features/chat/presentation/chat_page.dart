@@ -188,7 +188,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           style: TextStyle(color: Colors.grey),
                         );
                       }
-                      return Text(summaryState.summary!);
+                      return SelectableText(summaryState.summary!);
                     },
                   ),
                   const SizedBox(height: 24),
@@ -245,7 +245,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 4.0,
                                 ),
-                                child: Text("• $hint"),
+                                child: SelectableText("• $hint"),
                               ),
                             )
                             .toList(),
