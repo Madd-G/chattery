@@ -38,6 +38,8 @@ dependencies:
   flutter_tts: ^4.2.3
   flutter_riverpod: ^2.6.1
   flutter_markdown: ^0.7.7+1
+  flutter_svg: ^0.20.0-nullsafety.3
+  flutter_math: ^0.3.0-nullsafety.1
 
 dev_dependencies:
   flutter_test:
