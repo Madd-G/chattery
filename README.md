@@ -59,6 +59,15 @@ Watch a demo of Chattery in action:
 https://github.com/user-attachments/assets/20c54270-0bcd-4e30-8835-7d1d8c38e3bb
 
 
+Display table
+
+
+
+https://github.com/user-attachments/assets/e40dd302-ae6a-4a5b-b318-aeaf7e2ab280
+
+
+
+
 -----
 
 ## Contributing 🤝
